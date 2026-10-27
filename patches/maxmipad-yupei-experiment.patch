@@ -1,0 +1,77 @@
+diff --git a/app/src/main/java/com/yifeplayte/maxmipadinput/activity/pages/MainPage.kt b/app/src/main/java/com/yifeplayte/maxmipadinput/activity/pages/MainPage.kt
+index 6c9fc17..207ce59 100644
+--- a/app/src/main/java/com/yifeplayte/maxmipadinput/activity/pages/MainPage.kt
++++ b/app/src/main/java/com/yifeplayte/maxmipadinput/activity/pages/MainPage.kt
+@@ -81,6 +81,9 @@ class MainPage : BasePage() {
+                 add("3") {
+                     safeSP.putAny("remove_stylus_bluetooth_restriction_driver_version", "3")
+                 }
++                if (Build.DEVICE == "yupei") add("8") {
++                    safeSP.putAny("remove_stylus_bluetooth_restriction_driver_version", "8")
++                }
+             },
+             dataBindingRecv = bindingRemoveStylusBluetoothRestriction.getRecv(1)
+         )
+@@ -193,4 +196,4 @@ class MainPage : BasePage() {
+             }
+         )
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/app/src/main/java/com/yifeplayte/maxmipadinput/hook/hooks/singlepackage/android/RemoveStylusBluetoothRestriction.kt b/app/src/main/java/com/yifeplayte/maxmipadinput/hook/hooks/singlepackage/android/RemoveStylusBluetoothRestriction.kt
+index 0359966..8b9c956 100644
+--- a/app/src/main/java/com/yifeplayte/maxmipadinput/hook/hooks/singlepackage/android/RemoveStylusBluetoothRestriction.kt
++++ b/app/src/main/java/com/yifeplayte/maxmipadinput/hook/hooks/singlepackage/android/RemoveStylusBluetoothRestriction.kt
+@@ -1,6 +1,7 @@
+ package com.yifeplayte.maxmipadinput.hook.hooks.singlepackage.android
+ 
+ import android.os.Build
++import android.util.Log
+ import com.github.kyuubiran.ezxhelper.ClassUtils.invokeStaticMethodBestMatch
+ import com.github.kyuubiran.ezxhelper.ClassUtils.loadClass
+ import com.github.kyuubiran.ezxhelper.ClassUtils.loadFirstClass
+@@ -17,6 +18,15 @@ object RemoveStylusBluetoothRestriction : BaseHook() {
+             "com.miui.server.input.stylus.MiuiStylusDeviceListener",
+             "com.miui.server.stylus.MiuiStylusDeviceListener"
+         )
++        if (Build.DEVICE == "yupei") {
++            // Keep HyperOS 4's device list and touch-film callbacks intact.
++            clazzMiuiStylusDeviceListener.declaredConstructors.createHooks {
++                after {
++                    applyPad8Mode()
++                }
++            }
++            return
++        }
+         clazzMiuiStylusDeviceListener.declaredConstructors.createHooks {
+             after {
+                 setTouchModeStylusEnable(isNew)
+@@ -29,6 +39,26 @@ object RemoveStylusBluetoothRestriction : BaseHook() {
+         }
+     }
+ 
++    private fun applyPad8Mode() {
++        val version = getString("remove_stylus_bluetooth_restriction_driver_version", "2")
++            .toIntOrNull()
++        // The yupei-w-oss driver only handles generation 3 (M80P) and 8 (P81C)
++        // as active pen connections. Generations 1/2 set pen_shield_flag instead.
++        if (version != 3 && version != 8) {
++            Log.w("MaxMiPad", "Pad 8 stylus mode skipped: unsupported generation=$version")
++            return
++        }
++        try {
++            val touchFeature = invokeStaticMethodBestMatch(
++                loadClass("miui.util.ITouchFeature"), "getInstance"
++            ) ?: return
++            val result = invokeMethodBestMatch(touchFeature, "setTouchMode", null, 0, 20, 0x10 or version)
++            Log.i("MaxMiPad", "Pad 8 stylus mode request version=$version result=$result")
++        } catch (error: Throwable) {
++            Log.e("MaxMiPad", "Pad 8 stylus mode request failed", error)
++        }
++    }
++
+     private fun setTouchModeStylusEnable(isNew: Boolean) {
+         val driverVersion =
+             getString("remove_stylus_bluetooth_restriction_driver_version", "2").toInt()
+
