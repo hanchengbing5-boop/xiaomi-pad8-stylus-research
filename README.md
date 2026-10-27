@@ -12,6 +12,7 @@
 ## 文件
 
 - [实验补丁](patches/maxmipad-yupei-experiment.patch)：基于 MaxMiPad 上游提交 `fdd7ecb`；在 `yupei` 上保留系统原有监听器方法，只允许选择驱动源码中明确处理的连接值 `3/8`，并记录 mode 20 的返回值。**补丁未经构建或真机验证。**
+- [修改后的两个 Kotlin 文件](source/MaxMiPad/)：便于直接阅读代码；若要移植到上游项目，请优先使用补丁并核对目标版本。
 - [Pad 8 实验说明](research/PAD8_EXPERIMENT.md)：补丁作用与局限。
 - [PN7522W 研究](research/PN7522W_PAD8.md)：戴尔笔的协议和实测判据。
 - [灵感触控笔二代研究](research/SMART_PEN_2_PAD8.md)：平板 6 与 8 的驱动差异。
